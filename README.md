@@ -31,76 +31,116 @@ STEP-5: Display the obtained cipher text.
 #include <string.h>
 #include <ctype.h>
 
-char m[5][5];
+char key[5][5];
+int used[26] = {0};
 
-void makeKey(char k[]) {
-    int used[26] = {0}, r = 0, c = 0;
-    used['J'-'A'] = 1;
+void generateKey(char str[])
+{
+    int k = 0;
+    used['J' - 'A'] = 1;
 
-    for (int i = 0; k[i]; i++) {
-        char ch = toupper(k[i]);
-        if (ch < 'A' || ch > 'Z') continue;
-        if (ch == 'J') ch = 'I';
-        if (!used[ch-'A']) {
-            m[r][c++] = ch;
-            used[ch-'A'] = 1;
-            if (c == 5) c = 0, r++;
+    for (int i = 0; str[i]; i++)
+    {
+        char c = toupper(str[i]);
+        if (c >= 'A' && c <= 'Z' && !used[c - 'A'])
+        {
+            key[k / 5][k % 5] = c;
+            used[c - 'A'] = 1;
+            k++;
         }
     }
 
-    for (char ch = 'A'; ch <= 'Z'; ch++)
-        if (!used[ch-'A']) {
-            m[r][c++] = ch;
-            if (c == 5) c = 0, r++;
+    for (char c = 'A'; c <= 'Z'; c++)
+    {
+        if (!used[c - 'A'])
+        {
+            key[k / 5][k % 5] = c;
+            k++;
         }
+    }
 }
 
-void encrypt(char a, char b) {
-    int r1, c1, r2, c2;
+void findPosition(char c, int *r, int *col)
+{
+    if (c == 'J') c = 'I';
+
     for (int i = 0; i < 5; i++)
-        for (int j = 0; j < 5; j++) {
-            if (m[i][j] == a) r1 = i, c1 = j;
-            if (m[i][j] == b) r2 = i, c2 = j;
-        }
-
-    if (r1 == r2)
-        printf("%c%c", m[r1][(c1+1)%5],
-                       m[r2][(c2+1)%5]);
-    else if (c1 == c2)
-        printf("%c%c", m[(r1+1)%5][c1],
-                       m[(r2+1)%5][c2]);
-    else
-        printf("%c%c", m[r1][c2], m[r2][c1]);
+        for (int j = 0; j < 5; j++)
+            if (key[i][j] == c)
+            {
+                *r = i;
+                *col = j;
+                return;
+            }
 }
 
-int main() {
-    char key[100], text[100], p[200];
+void process(char text[], int encrypt)
+{
+    int len = strlen(text);
+
+    for (int i = 0; i < len; i += 2)
+    {
+        int r1, c1, r2, c2;
+        findPosition(text[i], &r1, &c1);
+        findPosition(text[i+1], &r2, &c2);
+
+        if (r1 == r2)
+        {
+            text[i] = key[r1][(c1 + (encrypt ? 1 : 4)) % 5];
+            text[i+1] = key[r2][(c2 + (encrypt ? 1 : 4)) % 5];
+        }
+        else if (c1 == c2)
+        {
+            text[i] = key[(r1 + (encrypt ? 1 : 4)) % 5][c1];
+            text[i+1] = key[(r2 + (encrypt ? 1 : 4)) % 5][c2];
+        }
+        else
+        {
+            text[i] = key[r1][c2];
+            text[i+1] = key[r2][c1];
+        }
+    }
+}
+
+int main()
+{
+    char keyword[100], plain[200], cipher[200], decrypted[200];
     int n = 0;
 
-    printf("Enter key: ");
-    scanf("%99s", key);
+    printf("Enter keyword: ");
+    scanf("%99s", keyword);
+
     printf("Enter plaintext: ");
-    scanf("%99s", text);
+    scanf("%199s", plain);
 
-    makeKey(key);
+    for (int i = 0; plain[i]; i++)
+    {
+        char c = toupper(plain[i]);
+        if (c >= 'A' && c <= 'Z')
+        {
+            if (c == 'J') c = 'I';
 
-    for (int i = 0; text[i]; i++) {
-        char ch = toupper(text[i]);
-        if (ch >= 'A' && ch <= 'Z')
-            p[n++] = (ch == 'J') ? 'I' : ch;
+            if (n > 0 && plain[i] == plain[i-1] && n % 2 == 1)
+                cipher[n++] = 'X';
+
+            cipher[n++] = c;
+        }
     }
 
-    printf("Encrypted text: ");
-    for (int i = 0; i < n; ) {
-        char a = p[i++], b;
-        if (i == n || a == p[i])
-            b = 'X';
-        else
-            b = p[i++];
-        encrypt(a, b);
-    }
+    if (n % 2 != 0)
+        cipher[n++] = 'X';
 
-    printf("\n");
+    cipher[n] = '\0';
+
+    generateKey(keyword);
+
+    process(cipher, 1);
+    printf("\nEncrypted Text: %s", cipher);
+
+    strcpy(decrypted, cipher);
+    process(decrypted, 0);
+    printf("\nDecrypted Text: %s\n", decrypted);
+
     return 0;
 }
 
@@ -108,7 +148,8 @@ int main() {
 
 
 ## Output:
-<img width="1917" height="777" alt="image" src="https://github.com/user-attachments/assets/8f433756-4813-4306-b544-90b35b4f2c4f" />
+<img width="923" height="392" alt="image" src="https://github.com/user-attachments/assets/5626645e-ebad-4e24-a640-46df021291a4" />
+
 
 ## Result:
 
